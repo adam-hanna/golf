@@ -1,6 +1,6 @@
 .PHONY: config
 config: sessions-secret
-	@Done!
+	@echo "Done!"
 
 .PHONY: sessions-secret
 sessions-secret:
