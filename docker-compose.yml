@@ -1,0 +1,65 @@
+version: "3.7"
+
+secrets:
+  secret-key:
+    file: ./docker/secrets/sessions-key.secret
+
+services:
+  server:
+    build: ./server
+    ports:
+      - "8080:8080"
+    secrets:
+      - secret-key
+    depends_on:
+      - cache
+      - db
+    links:
+      - cache
+      - db
+    volumes:
+      - ./server:/home/node/app
+      - /home/node/app/node_modules/
+    environment:
+      - POSTGRES_URL=postgres://postgres:postgres@db:5432/postgres?sslmode=disable
+      - SESSIONS_KEY=secret-key
+      - REDIS_URL=cache:6379
+      - SECURE=false
+      - HOST=0.0.0.0
+      - PORT=8080
+
+  client:
+    build: ./client
+    stdin_open: true
+    depends_on:
+      - server
+    links:
+      - server
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./client:/home/node/app
+      - /home/node/app/node_modules/
+    environment:
+      - REACT_APP_DEV_API_URL=http://localhost:8080
+
+  cache:
+    image: redis
+    restart: always
+    volumes:
+      - ./docker/volumes/cache:/data
+    ports:
+      - "6378:6379"
+
+  db:
+    image: postgres
+    restart: always
+    ports:
+      - "5431:5432"
+    volumes:
+      - ./docker/volumes/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+      - PGDATA=/var/lib/postgresql/data/db-files/
